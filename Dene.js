@@ -1,7 +1,7 @@
 import React, { useState, createContext, useCallback } from 'react';
 import { BleManager } from 'react-native-ble-plx';
 import { Buffer } from 'buffer';
-import { View, Text, TouchableOpacity, StyleSheet, Image, TouchableNativeFeedback } from 'react-native';
+import { View, Text, StyleSheet, TouchableNativeFeedback } from 'react-native';
 
 export const  DeviceContext = createContext();
 let bleManager = new BleManager();
