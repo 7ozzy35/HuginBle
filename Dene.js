@@ -1,18 +1,18 @@
 import React, { useState, createContext, useCallback, useEffect } from 'react';
 import { BleManager } from 'react-native-ble-plx';
 import { Buffer } from 'buffer';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
+
 
 export const DeviceContext = createContext();
 let bleManager = new BleManager();
 
 export const DeviceProvider = () => {
-
-  const [connectedDevice, setConnectedDevice] = useState(false);
+  const [connectedDevice, setConnectedDevice] = useState(null);
   const [disconnectMessage, setDisconnectMessage] = useState('');
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [disconnectButtonVisible, setDisconnectButtonVisible] = useState(false);
-  const myId = "12:6C:14:38:F5:40"; // Replace with your device ID jdy-23 ilk
+  const myId = "12:6C:14:38:F5:40"; // Replace with your device ID
 
   const resetBleManager = () => {
     bleManager.destroy();
@@ -155,7 +155,20 @@ export const DeviceProvider = () => {
       console.error('Failed to send data:', error);
     }
   };
-
+  
+  const openApp = async () => {
+    try {
+      const url = 'intent://com.example.huginshowertestapp#Intent;scheme=huginshowertestapp;package=com.example.huginshowertestapp;end;';
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert("Uygulama bulunamadı veya desteklenmiyor");
+      }
+    } catch (error) {
+      console.error('Uygulama açılamadı:', error);
+    }
+  };
   useEffect(() => {
     const initiateProcess = async () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -167,8 +180,10 @@ export const DeviceProvider = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-      </View>
+      <TouchableOpacity style={styles.button} onPress={openApp}>
+        <Text style={styles.text}>Geri Dön</Text>
+      </TouchableOpacity>
+      <View style={styles.headerContainer}></View>
       {disconnectButtonVisible && (
         <View style={styles.disconnectMessageContainer}>
           <Text>{disconnectMessage}</Text>
