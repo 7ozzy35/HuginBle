@@ -12,7 +12,7 @@ export const DeviceProvider = () => {
   const [disconnectMessage, setDisconnectMessage] = useState('');
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [disconnectButtonVisible, setDisconnectButtonVisible] = useState(false);
-  const myId = "12:6C:14:38:F5:40"; // Replace with your device ID
+  const myId = "12:6C:14:38:F5:40"; // Replace with your device ID jdy-23 ilk
 
   const resetBleManager = () => {
     bleManager.destroy();
@@ -52,7 +52,7 @@ export const DeviceProvider = () => {
       setDisconnectMessage('');
       setDisconnectButtonVisible(true);
 
-      const data = '<1:4:1>';
+      const data = '<1:4:3>';
       await sendDataToDevice(device, '0000ffe0-0000-1000-8000-00805f9b34fb', '0000ffe1-0000-1000-8000-00805f9b34fb', data);
       console.log('Door open command sent');
 
@@ -74,7 +74,8 @@ export const DeviceProvider = () => {
 
       const autoDisconnectTimeout = setTimeout(async () => {
         await disconnectDevice2();
-      }, 10000);
+        console.log('Auto disconnect after 10 seconds');
+      }, 3000);
 
       device.autoDisconnectTimeout = autoDisconnectTimeout;
     } catch (error) {
