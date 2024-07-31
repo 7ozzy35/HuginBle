@@ -4,6 +4,7 @@ import { Buffer } from 'buffer';
 import { View, Text, StyleSheet, TouchableNativeFeedback ,Linking, BackHandler} from 'react-native';
 import { PermissionsAndroid, Platform } from 'react-native';
 import Intent from 'react-native-intent';
+import { myId } from './Component/DevicesId';
 
 
 export const DeviceContext = createContext();
@@ -55,7 +56,8 @@ useEffect(() => {
   const [disconnectMessage, setDisconnectMessage] = useState('');
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [disconnectButtonVisible, setDisconnectButtonVisible] = useState(false);
-  const myId = "12:6C:14:38:F5:40"; // Replace with your device ID
+//   const myId = "12:6C:14:38:F5:40";
+   // Replace with your device ID
 
   const resetBleManager = () => {
     bleManager.destroy();
@@ -108,7 +110,7 @@ useEffect(() => {
           try {
             // Geçici olarak erişilebilirlik kontrolü
             if (bleManager.state !== 'destroyed') {
-              await bleManager.cancelDeviceConnection("12:6C:14:38:F5:40");
+              await bleManager.cancelDeviceConnection(myId);
               console.log('Disconnected from device');
               
               
