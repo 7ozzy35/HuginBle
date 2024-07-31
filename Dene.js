@@ -174,7 +174,6 @@ useEffect(() => {
   };
   
 
-
   const exitApp = () => {
     if (Platform.OS === 'android') {
       BackHandler.exitApp();
