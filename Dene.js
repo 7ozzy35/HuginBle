@@ -1,18 +1,61 @@
-import React, { useState, createContext, useCallback, useEffect } from 'react';
+import React, { useState, createContext, useCallback,useEffect } from 'react';
 import { BleManager } from 'react-native-ble-plx';
 import { Buffer } from 'buffer';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableNativeFeedback ,Linking, BackHandler} from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
+import Intent from 'react-native-intent';
+
 
 export const DeviceContext = createContext();
 let bleManager = new BleManager();
 
-export const DeviceProvider = () => {
+export const DeviceProvider = ({ }) => {
 
+// İzinleri kontrol etmek ve istemek için bir fonksiyon
+const requestBluetoothPermissions = async () => {
+  if (Platform.OS === 'android') {
+    try {
+      const granted = await PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+      ]);
+
+      if (
+        granted['android.permission.BLUETOOTH_CONNECT'] ===
+          PermissionsAndroid.RESULTS.GRANTED &&
+        granted['android.permission.BLUETOOTH_SCAN'] ===
+          PermissionsAndroid.RESULTS.GRANTED
+      ) {
+        console.log('Bluetooth permissions granted');
+      } else {
+        console.log('Bluetooth permissions denied');
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+  }
+};
+
+// İzinleri uygulama başlatıldığında veya cihaz bağlantısı yapmadan önce çağırın
+
+useEffect(() => {
+  const firstFunc = async()=>{
+    
+    await requestBluetoothPermissions();
+    // await handleDoorOpen();
+    
+  }
+  firstFunc();
+  
+  
+}, [])
+
+  const [message,setMessage] =  useState(null)
   const [connectedDevice, setConnectedDevice] = useState(false);
   const [disconnectMessage, setDisconnectMessage] = useState('');
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [disconnectButtonVisible, setDisconnectButtonVisible] = useState(false);
-  const myId = "12:6C:14:38:F5:40"; // Replace with your device ID jdy-23 ilk
+  const myId = "12:6C:14:38:F5:40"; // Replace with your device ID
 
   const resetBleManager = () => {
     bleManager.destroy();
@@ -44,42 +87,49 @@ export const DeviceProvider = () => {
 
   const handleDoorOpen = useCallback(async () => {
     setIsButtonDisabled(true);
+    console.log("handleopen door")
     try {
+      console.log("nerdesin1")
+      
       const device = await bleManager.connectToDevice(myId);
+      console.log("nerdesin2")
       await device.discoverAllServicesAndCharacteristics();
       console.log("Device connected:", device);
       setConnectedDevice(device);
       setDisconnectMessage('');
       setDisconnectButtonVisible(true);
 
-      const data = '<1:4:3>';
+      const data = '<1:4:1>';
       await sendDataToDevice(device, '0000ffe0-0000-1000-8000-00805f9b34fb', '0000ffe1-0000-1000-8000-00805f9b34fb', data);
       console.log('Door open command sent');
-
+      setMessage(true);
       const disconnectDevice2 = async () => {
         if (device) {
           try {
+            // Geçici olarak erişilebilirlik kontrolü
             if (bleManager.state !== 'destroyed') {
-              await bleManager.cancelDeviceConnection(myId);
+              await bleManager.cancelDeviceConnection("12:6C:14:38:F5:40");
               console.log('Disconnected from device');
+              
+              
               setConnectedDevice(null);
             } else {
               console.error('BleManager is destroyed and cannot disconnect');
             }
-          } catch (error) {
-            console.log('bağlantı koptu', error);
+          } catch (count) {
+            console.log('bağlantı koptu', count);
           }
         }
       };
 
       const autoDisconnectTimeout = setTimeout(async () => {
         await disconnectDevice2();
-        console.log('Auto disconnect after 10 seconds');
-      }, 3000);
+        // await exitApp();
+      }, 5000);
 
       device.autoDisconnectTimeout = autoDisconnectTimeout;
     } catch (error) {
-      console.log('Failed to open door:', error);
+      console.log('Failed to open door2:', error);
       if (error.message.includes('BleManager was destroyed')) {
         console.log("BLE Manager destroyed, resetting...");
         resetBleManager();
@@ -90,59 +140,26 @@ export const DeviceProvider = () => {
     }, 3000);
   }, [myId]);
 
-  const CardControl = useCallback(async (data) => {
-    setIsButtonDisabled(true);
+  const handleDeviceConnection = async () => {
     try {
+      console.log('Connecting to device with ID:', myId);
       const device = await bleManager.connectToDevice(myId);
-      await device.discoverAllServicesAndCharacteristics();
-      console.log("Device connected:", device);
-      setConnectedDevice(device);
-      setDisconnectMessage('');
-      setDisconnectButtonVisible(true);
-
-      await sendDataToDevice(device, '0000ffe0-0000-1000-8000-00805f9b34fb', '0000ffe1-0000-1000-8000-00805f9b34fb', data);
-      console.log('Command sent');
-
-      const serviceUUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
-      const characteristicUUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
-
-      const readData = await device.readCharacteristicForService(serviceUUID, characteristicUUID);
-      const decodedData = Buffer.from(readData.value, 'base64').toString('utf-8');
-      console.log('Received data:', decodedData);
-
-      const disconnectDevice2 = async () => {
-        if (device) {
-          try {
-            if (bleManager.state !== 'destroyed') {
-              await bleManager.cancelDeviceConnection(myId);
-              console.log('Disconnected from device');
-              setConnectedDevice(null);
-            } else {
-              console.error('BleManager is destroyed and cannot disconnect');
-            }
-          } catch (error) {
-            console.log('bağlantı koptu', error);
-          }
-        }
-      };
-
-      const autoDisconnectTimeout = setTimeout(async () => {
-        await disconnectDevice2();
-      }, 2500);
-
-      device.autoDisconnectTimeout = autoDisconnectTimeout;
+      console.log('Connected to device:', device);
+      // Devam eden işlemler...
     } catch (error) {
-      console.log('Failed to open door:', error);
+      console.error('Connection failed:', error);
+      // Hata ile ilgili daha fazla bilgi
+      if (error.reason) {
+        console.error('Error reason:', error.reason);
+      }
+      // Gerekirse BLE Manager'ı sıfırlayın
       if (error.message.includes('BleManager was destroyed')) {
         console.log("BLE Manager destroyed, resetting...");
         resetBleManager();
       }
     }
-    setTimeout(() => {
-      setIsButtonDisabled(false);
-    }, 3000);
-  }, [myId]);
-
+  };
+  
   const sendDataToDevice = async (device, serviceUUID, characteristicUUID, data) => {
     try {
       const characteristic = await device.writeCharacteristicWithResponseForService(
@@ -155,28 +172,30 @@ export const DeviceProvider = () => {
       console.error('Failed to send data:', error);
     }
   };
+  
 
-  useEffect(() => {
-    const initiateProcess = async () => {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      handleDoorOpen();
-    };
 
-    initiateProcess();
-  }, [handleDoorOpen]);
+  const exitApp = () => {
+    if (Platform.OS === 'android') {
+      BackHandler.exitApp();
+    }
+  };
+  
+
 
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
+        {/* Header içeriği buraya */}
       </View>
-      {disconnectButtonVisible && (
-        <View style={styles.disconnectMessageContainer}>
-          <Text>{disconnectMessage}</Text>
-        </View>
-      )}
+      <Text style={styles.successMessage}>İşlemleriniz başarıyla tamamlanmıştır</Text>
+      <Text style={styles.instruction}>Lütfen Kapıdan Geçiniz</Text>
     </View>
   );
 };
+
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -187,18 +206,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerContainer: {
+    // Header stilleri
+  },
+  successMessage: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 10,
+    color:"black",
+    
+  },
+  instruction: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginVertical: 5,
+    color:"black"
+  },
+  headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 20,
     marginBottom: 50,
     margin: 20,
-  },
-  disconnectMessageContainer: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#FFBF78',
-    borderRadius: 8,
   },
   button: {
     position: "absolute",
@@ -221,6 +251,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+
+  doorOpenButton: {
+    backgroundColor: '#ff9800',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 16,
+    alignItems: 'center',
   },
   buttonText: {
     color: '#ffffff',
